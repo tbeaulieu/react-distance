@@ -7,8 +7,7 @@ import './App.css';
 const googleApikey = "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E";
 
 let getLongitudeLatitude = async (ipAddress) => {
-  let requestSchema = 'http://api.graphloc.com/graphql?query={getLocation(ip:"'
-                            +ipAddress+'"){location{latitude longitude}}}';
+  let requestSchema = 'http://api.graphloc.com/graphql?query={getLocation(ip:"'+ipAddress+'"){location{latitude longitude}}}';
   let data = await asyncFetchData(requestSchema);
   return data;
 }
@@ -33,13 +32,18 @@ let getGoogleMaps = async (origin, destination) => {
   let originObj = await getLongitudeLatitude(origin);
   let destObj = await getLongitudeLatitude(destination);
   //Set them.
-  let requestSchema = "https://maps.googleapis.com/maps/api/directions/json?origin="+originObj.data.getLocation.location.latitude+","
+  if(originObj.data.getLocation != null && destObj.data.getLocation != null){
+    let requestSchema = "https://maps.googleapis.com/maps/api/directions/json?origin="+originObj.data.getLocation.location.latitude+","
                             +originObj.data.getLocation.location.longitude+"&destination="
                             +destObj.data.getLocation.location.latitude+","
                             +destObj.data.getLocation.location.longitude+"&key="+googleApikey;
-  // Get the Google Maps Data
-  let data = await asyncFetchData(requestSchema);
-  return data;
+    // Get the Google Maps Data
+    let data = await asyncFetchData(requestSchema);
+    return data;
+  }
+  else{
+    return null
+  }
 }
 
 
@@ -54,23 +58,40 @@ class App extends Component {
       destinationIp: null,
       destinationAddress: [],
       distance: null,
-      time: null
+      time: null,
+      error: false
     };
   }  
-  
+  //We're doing ip checking on blur so we don't keep hammering the graphql server
+  async checkip(event){
+    event.persist();  //Keeps the event around while we're waiting for the async back.
+    if(ipRegex({exact:true}).test(event.target.value)){
+      let checkedIP = await getLongitudeLatitude(event.target.value);
+      // console.log("derp"+checkedIP.data.getLocation);
+      if(checkedIP.data.getLocation !=null){
+        this.setState({[event.target.name]: event.target.value});
+        event.target.className="";
+      }
+      else{
+        event.target.className="error";
+      }
+    }
+    else{
+      event.target.className="error";
+    }
+  }
 
   async getResults(e){
-    // console.log("whee!");
     //check if our inputs are valid
     if(ipRegex({exact:true}).test(this.state.originIp) && ipRegex({exact:true}).test(this.state.destinationIp)){
       let directionInfo = await getGoogleMaps(this.state.originIp, this.state.destinationIp);
-      console.log(directionInfo.routes[0].legs[0]);
-
-      this.setState({inputToggle: false,
-                    originAddress: directionInfo.routes[0].legs[0].start_address.split(","),
-                    destinationAddress: directionInfo.routes[0].legs[0].end_address.split(","),
-                    time: directionInfo.routes[0].legs[0].duration.text      
-      });
+      if(directionInfo!=null){  //Our error checking.
+        this.setState({inputToggle: false,
+                      originAddress: directionInfo.routes[0].legs[0].start_address.split(","),
+                      destinationAddress: directionInfo.routes[0].legs[0].end_address.split(","),
+                      time: directionInfo.routes[0].legs[0].duration.text      
+        });
+      }
     }
   }
   
@@ -94,16 +115,17 @@ class App extends Component {
             <figure>
             <label>Origin:</label>
           {this.state.inputToggle ?(
-            <input type="text" name="origin" onBlur={(e)=> this.setState({originIp: e.target.value})}></input>) : 
+            <div><input type="text" name="originIp" onBlur={(e)=> this.checkip(e)}></input><p>Please Input a Valid Ip</p></div>) : 
             (<div><strong>{this.state.originAddress[0]}</strong>
                   <p>{this.state.originAddress[1]}, {this.state.originAddress[2]}</p></div>) }
             </figure>
             <figure>
           <label>Destination:</label>
           {this.state.inputToggle ?(
-            <input type="text" name="destination" onBlur={(e)=> this.setState({destinationIp: e.target.value})}></input>) : 
+            <div><input type="text" name="destinationIp" onBlur={(e)=> this.checkip(e)}></input><p>Please Input a Valid Ip</p></div>) : 
             (<div><strong>{this.state.destinationAddress[0]}</strong><p>{this.state.destinationAddress[1]}, {this.state.destinationAddress[2]}</p></div>) }
             </figure>
+
           </section>
         </div>
           {this.state.inputToggle ?(
