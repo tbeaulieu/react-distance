@@ -1,8 +1,6 @@
 import React, { Component } from 'react';
-import ipRegex from 'ip-regex'; //npm pull so we can quickly validate without boilerplate code. Does a regex check on a V4 ip and returns true/false
+import ipRegex from './ip-regex.js'; //npm pull so we can quickly validate without boilerplate code. Does a regex check on a V4 ip and returns true/false
 import './App.css';
-
-//https://maps.googleapis.com/maps/api/directions/json?origin=lat/long&destination=lat,long&key=[apikey]
 
 const googleApikey = "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E";
 
@@ -46,9 +44,7 @@ let getGoogleMaps = async (origin, destination) => {
   }
 }
 
-
 class App extends Component {
-  
   constructor(props){
     super(props);
     this.state={
@@ -91,10 +87,10 @@ class App extends Component {
                       destinationAddress: directionInfo.routes[0].legs[0].end_address.split(","),
                       time: directionInfo.routes[0].legs[0].duration.text      
         });
+
       }
     }
   }
-  
   goBack(e){
     this.setState({
       inputToggle: true,
@@ -102,27 +98,25 @@ class App extends Component {
       destinationIp: null
     });
   }
-
   render() {
     return (
       <div className="App">
         <div className="ThingsHappening">
-    {!this.state.inputToggle ? (<button className="goBack" onClick={(e)=> this.goBack(e)}>Back</button>):('')}
-          <h3 color="primary">How long is the drive?</h3>
-          <p>71.190.162.78</p>
-          <p>98.138.252.38</p>
+        {!this.state.inputToggle ? (<button className="goBack" onClick={(e)=> this.goBack(e)}>Back</button>):('')}
+          <h3 className={!this.state.inputToggle ? ('solved') : ('')}>How long is the drive?</h3>
+
           <section>
             <figure>
             <label>Origin:</label>
           {this.state.inputToggle ?(
-            <div><input type="text" name="originIp" onBlur={(e)=> this.checkip(e)}></input><p>Please Input a Valid Ip</p></div>) : 
+            <div><input type="text" name="originIp" onBlur={(e)=> this.checkip(e)}></input><p>Please input a valid ip</p></div>) : 
             (<div><strong>{this.state.originAddress[0]}</strong>
                   <p>{this.state.originAddress[1]}, {this.state.originAddress[2]}</p></div>) }
             </figure>
             <figure>
           <label>Destination:</label>
           {this.state.inputToggle ?(
-            <div><input type="text" name="destinationIp" onBlur={(e)=> this.checkip(e)}></input><p>Please Input a Valid Ip</p></div>) : 
+            <div><input type="text" name="destinationIp" onBlur={(e)=> this.checkip(e)}></input><p>Please Input a valid ip</p></div>) : 
             (<div><strong>{this.state.destinationAddress[0]}</strong><p>{this.state.destinationAddress[1]}, {this.state.destinationAddress[2]}</p></div>) }
             </figure>
 
@@ -130,7 +124,7 @@ class App extends Component {
         </div>
           {this.state.inputToggle ?(
             <button className="goGetIt" onClick={(e)=> this.getResults(e)}>Gimmie the Distance!</button>) :
-            (<div><h3>{this.state.time}.</h3><p>Well, that ain't far.</p></div>)}
+            (<div><h4>{this.state.time}.</h4><p>Well, that ain't far.</p></div>)}
       </div>
     );
   }
