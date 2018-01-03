@@ -1,8 +1,13 @@
 import React, { Component } from 'react';
 import ipRegex from './ip-regex.js'; //npm pull so we can quickly validate without boilerplate code. Does a regex check on a V4 ip and returns true/false
+import {GoogleApiWrapper} from 'google-maps-react'; //So we can lazy load in google maps api without various terrible means like loadJS
+
 import './App.css';
+/* global google */
+
 
 const googleApikey = "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E";
+let ourResults = [];
 
 let getLongitudeLatitude = async (ipAddress) => {
   let requestSchema = 'https://api.graphloc.com/graphql?query={getLocation(ip:"'+ipAddress+'"){location{latitude longitude}}}';
@@ -10,11 +15,14 @@ let getLongitudeLatitude = async (ipAddress) => {
   return data;
 }
 
-//Yes we're using a different call to google instead of adding in another variable due to the multi input.
 
 let asyncFetchData = async (requestSchema) => {
   console.log("request "+requestSchema);
-  let data = await (await (fetch(requestSchema)
+  let data = await (await (fetch(requestSchema,{
+    method: 'GET',
+    headers:{
+      Accept: 'application/json'}
+   })
     .then(res => {
       return res.json()
     })
@@ -25,24 +33,6 @@ let asyncFetchData = async (requestSchema) => {
   return data;
 }
 
-let getGoogleMaps = async (origin, destination) => {
-  // Get our two lat/long asyncrhonously 
-  let originObj = await getLongitudeLatitude(origin);
-  let destObj = await getLongitudeLatitude(destination);
-  //Set them.
-  if(originObj.data.getLocation != null && destObj.data.getLocation != null){
-    let requestSchema = "https://maps.googleapis.com/maps/api/directions/json?origin="+originObj.data.getLocation.location.latitude+","
-                            +originObj.data.getLocation.location.longitude+"&destination="
-                            +destObj.data.getLocation.location.latitude+","
-                            +destObj.data.getLocation.location.longitude+"&key="+googleApikey;
-    // Get the Google Maps Data
-    let data = await asyncFetchData(requestSchema);
-    return data;
-  }
-  else{
-    return null
-  }
-}
 
 class App extends Component {
   constructor(props){
@@ -57,7 +47,13 @@ class App extends Component {
       time: null,
       error: false
     };
-  }  
+  } 
+  
+  componentDidMount(){
+  }
+  initMap(){
+    let map = new google.maps.Map(this.refs.map.getDOMNode());
+  }
   //We're doing ip checking on blur so we don't keep hammering the graphql server
   async checkip(event){
     event.persist();  //Keeps the event around while we're waiting for the async back.
@@ -80,17 +76,53 @@ class App extends Component {
   async getResults(e){
     //check if our inputs are valid
     if(ipRegex({exact:true}).test(this.state.originIp) && ipRegex({exact:true}).test(this.state.destinationIp)){
-      let directionInfo = await getGoogleMaps(this.state.originIp, this.state.destinationIp);
-      if(directionInfo!=null){  //Our error checking.
+      let directionInfo = await this.getGoogleMaps(this.state.originIp, this.state.destinationIp);
+      if(await directionInfo===true){
+      console.log("Hello Tokyo!"+ourResults);
         this.setState({inputToggle: false,
-                      originAddress: directionInfo.routes[0].legs[0].start_address.split(","),
-                      destinationAddress: directionInfo.routes[0].legs[0].end_address.split(","),
-                      time: directionInfo.routes[0].legs[0].duration.text      
+          originAddress: ourResults.routes[0].legs[0].start_address.split(","),
+          destinationAddress: ourResults.routes[0].legs[0].end_address.split(","),
+          time: ourResults.routes[0].legs[0].duration.text      
         });
+      }
 
+      if(directionInfo!=null){  //Our error checking.
+        console.log("Hello Frisco!"+ourResults);
       }
     }
   }
+
+  async getGoogleMaps(origin, destination){
+    // Get our two lat/long asyncrhonously 
+    let originObj = await getLongitudeLatitude(origin);
+    let destObj = await getLongitudeLatitude(destination);
+    //Set them.
+    if(originObj.data.getLocation != null && destObj.data.getLocation != null){
+      let directionsService = new google.maps.DirectionsService;
+      let data;
+      await directionsService.route({      
+        origin: originObj.data.getLocation.location.latitude+", "+originObj.data.getLocation.location.longitude,
+        destination: destObj.data.getLocation.location.latitude+", "+destObj.data.getLocation.location.longitude,
+        travelMode: 'DRIVING'
+      } , function(response, status) {
+        if (status === 'OK') {
+          ourResults = response;
+          console.log("Hello Berlin!"+response);
+          return true;
+        }
+        else{
+          console.log('Could not display route due to: ' + status);
+          return false;
+        }
+        });
+        console.log("end of validated ips");
+        return true;
+    }
+    else{
+      return false
+    }
+  }
+
   goBack(e){
     this.setState({
       inputToggle: true,
@@ -98,6 +130,7 @@ class App extends Component {
       destinationIp: null
     });
   }
+
   render() {
     return (
       <div className="App">
@@ -130,4 +163,4 @@ class App extends Component {
   }
 }
 
-export default App;
+export default GoogleApiWrapper({apiKey: "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E"})(App);

@@ -1,10 +1,11 @@
-
 {
   "name": "react-distance",
   "version": "0.1.0",
   "private": true,
-  "homepage" : "http://tbeaulieu.github.io/react-distance",
+  "homepage": "http://tbeaulieu.github.io/react-distance",
   "dependencies": {
+    "gh-pages": "^1.1.0",
+    "google-maps-react": "^1.1.2",
     "install": "^0.10.2",
     "ip-regex": "^2.1.0",
     "material-ui": "^1.0.0-beta.25",
