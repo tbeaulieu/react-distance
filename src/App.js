@@ -5,7 +5,7 @@ import './App.css';
 const googleApikey = "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E";
 
 let getLongitudeLatitude = async (ipAddress) => {
-  let requestSchema = 'http://api.graphloc.com/graphql?query={getLocation(ip:"'+ipAddress+'"){location{latitude longitude}}}';
+  let requestSchema = 'https://api.graphloc.com/graphql?query={getLocation(ip:"'+ipAddress+'"){location{latitude longitude}}}';
   let data = await asyncFetchData(requestSchema);
   return data;
 }
