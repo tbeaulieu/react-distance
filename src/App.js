@@ -17,7 +17,7 @@ let getLongitudeLatitude = async (ipAddress) => {
 
 
 let asyncFetchData = async (requestSchema) => {
-  console.log("request "+requestSchema);
+  // console.log("request "+requestSchema);
   let data = await (await (fetch(requestSchema,{
     method: 'GET',
     headers:{
@@ -71,7 +71,7 @@ class App extends Component {
   async getResults(e){
     //check if our inputs are valid
     if(ipRegex({exact:true}).test(this.state.originIp) && ipRegex({exact:true}).test(this.state.destinationIp)){ //still need to test despite validation
-      let directionInfo = await this.getGoogleMaps(this.state.originIp, this.state.destinationIp)
+      await this.getGoogleMaps(this.state.originIp, this.state.destinationIp)
         .then(ourResults => {
           this.setState({inputToggle: false,
              originAddress: ourResults.routes[0].legs[0].start_address.split(","),
