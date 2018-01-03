@@ -6,8 +6,8 @@ import './App.css';
 /* global google */
 
 
-const googleApikey = "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E";
-let ourResults = [];
+// const googleApikey = "AIzaSyBWyS9G2KtT2u8JD93MrqmT55RFmDPB-_E";
+// let ourResults = [];
 
 let getLongitudeLatitude = async (ipAddress) => {
   let requestSchema = 'https://api.graphloc.com/graphql?query={getLocation(ip:"'+ipAddress+'"){location{latitude longitude}}}';
@@ -49,11 +49,6 @@ class App extends Component {
     };
   } 
   
-  componentDidMount(){
-  }
-  initMap(){
-    let map = new google.maps.Map(this.refs.map.getDOMNode());
-  }
   //We're doing ip checking on blur so we don't keep hammering the graphql server
   async checkip(event){
     event.persist();  //Keeps the event around while we're waiting for the async back.
@@ -75,20 +70,15 @@ class App extends Component {
 
   async getResults(e){
     //check if our inputs are valid
-    if(ipRegex({exact:true}).test(this.state.originIp) && ipRegex({exact:true}).test(this.state.destinationIp)){
-      let directionInfo = await this.getGoogleMaps(this.state.originIp, this.state.destinationIp);
-      if(await directionInfo===true){
-      console.log("Hello Tokyo!"+ourResults);
-        this.setState({inputToggle: false,
-          originAddress: ourResults.routes[0].legs[0].start_address.split(","),
-          destinationAddress: ourResults.routes[0].legs[0].end_address.split(","),
-          time: ourResults.routes[0].legs[0].duration.text      
+    if(ipRegex({exact:true}).test(this.state.originIp) && ipRegex({exact:true}).test(this.state.destinationIp)){ //still need to test despite validation
+      let directionInfo = await this.getGoogleMaps(this.state.originIp, this.state.destinationIp)
+        .then(ourResults => {
+          this.setState({inputToggle: false,
+             originAddress: ourResults.routes[0].legs[0].start_address.split(","),
+             destinationAddress: ourResults.routes[0].legs[0].end_address.split(","),
+             time: ourResults.routes[0].legs[0].duration.text      
+          });
         });
-      }
-
-      if(directionInfo!=null){  //Our error checking.
-        console.log("Hello Frisco!"+ourResults);
-      }
     }
   }
 
@@ -99,27 +89,24 @@ class App extends Component {
     //Set them.
     if(originObj.data.getLocation != null && destObj.data.getLocation != null){
       let directionsService = new google.maps.DirectionsService;
-      let data;
-      await directionsService.route({      
+      //Seriously ugly method of getting Google maps Info via wrapping it in a promise.
+      return new Promise((resolve,reject) => {directionsService.route({      
         origin: originObj.data.getLocation.location.latitude+", "+originObj.data.getLocation.location.longitude,
         destination: destObj.data.getLocation.location.latitude+", "+destObj.data.getLocation.location.longitude,
         travelMode: 'DRIVING'
       } , function(response, status) {
         if (status === 'OK') {
-          ourResults = response;
-          console.log("Hello Berlin!"+response);
-          return true;
+          resolve(response);
         }
         else{
           console.log('Could not display route due to: ' + status);
-          return false;
+          reject(status);
         }
         });
-        console.log("end of validated ips");
-        return true;
+      });
     }
     else{
-      return false
+      return false;
     }
   }
 
@@ -137,7 +124,6 @@ class App extends Component {
         <div className="ThingsHappening">
         {!this.state.inputToggle ? (<button className="goBack" onClick={(e)=> this.goBack(e)}>Back</button>):('')}
           <h3 className={!this.state.inputToggle ? ('solved') : ('')}>How long is the drive?</h3>
-
           <section>
             <figure>
             <label>Origin:</label>
